@@ -1,0 +1,6 @@
+FROM python:3.12-alpine
+WORKDIR /app
+COPY syslog_receiver.py .
+RUN mkdir -p /logs
+EXPOSE 5514/tcp
+CMD ["python", "-u", "syslog_receiver.py"]

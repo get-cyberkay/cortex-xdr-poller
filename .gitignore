@@ -1,0 +1,38 @@
+# --- Credentials & secrets ---
+.env
+
+# --- Runtime state ---
+cortex_state.json
+
+# --- Log output ---
+logs/
+*.log
+
+# --- API specification PDFs ---
+*.pdf
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# --- Editors & OS ---
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Docker test artefacts ---
+/tmp/
+
+# --- Project-local scratch files ---
+cortex_plain.py
+.claude/
