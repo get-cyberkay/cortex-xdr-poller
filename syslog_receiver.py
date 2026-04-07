@@ -2,8 +2,9 @@
 """
 syslog_receiver.py — Simple RFC 5424 TCP syslog receiver.
 
-Uses RFC 6587 octet-count framing: each message is prefixed with
-"<byte-length> " before the syslog payload.
+Uses RFC 6587 octet-count framing by default: each message is prefixed with
+"<byte-length> " before the syslog payload. Also accepts newline-delimited TCP
+syslog for receivers/senders that use that framing style.
 
 Writes every received message as one line to /logs/received.log and
 also prints it to stdout (visible via docker logs).
@@ -53,23 +54,32 @@ def handle_client(conn: socket.socket, addr) -> None:
             if not chunk:
                 break
             buf += chunk
-            # RFC 6587 octet-count framing: "<len> <syslog-msg>"
             while buf:
-                sp = buf.find(b" ")
-                if sp == -1:
+                # RFC 6587 octet-count framing: "<len> <syslog-msg>"
+                if buf[:1].isdigit():
+                    sp = buf.find(b" ")
+                    if sp == -1:
+                        break
+                    try:
+                        msg_len = int(buf[:sp])
+                    except ValueError:
+                        msg_len = None
+                    if msg_len is not None:
+                        end = sp + 1 + msg_len
+                        if len(buf) < end:
+                            break  # wait for more data
+                        msg = buf[sp + 1:end].decode("utf-8", errors="replace")
+                        _write(msg)
+                        buf = buf[end:]
+                        continue
+
+                # Newline-delimited TCP framing.
+                nl = buf.find(b"\n")
+                if nl == -1:
                     break
-                try:
-                    msg_len = int(buf[:sp])
-                except ValueError:
-                    # Not a length prefix — discard up to next space
-                    buf = buf[sp + 1:]
-                    continue
-                end = sp + 1 + msg_len
-                if len(buf) < end:
-                    break  # wait for more data
-                msg = buf[sp + 1:end].decode("utf-8", errors="replace")
+                msg = buf[:nl].decode("utf-8", errors="replace")
                 _write(msg)
-                buf = buf[end:]
+                buf = buf[nl + 1:]
 
 
 def main() -> None:

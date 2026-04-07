@@ -83,6 +83,7 @@ SYSLOG_HOST      = os.getenv("SYSLOG_HOST",      "")
 SYSLOG_PORT      = _parse_int("SYSLOG_PORT",      514)
 SYSLOG_TRANSPORT = os.getenv("SYSLOG_TRANSPORT", "tcp").strip().lower()
 SYSLOG_FACILITY  = _parse_int("SYSLOG_FACILITY",  16)
+SYSLOG_TCP_FRAMING = os.getenv("SYSLOG_TCP_FRAMING", "octet").strip().lower()
 
 # ---------------------------------------------------------------------------
 # API pagination

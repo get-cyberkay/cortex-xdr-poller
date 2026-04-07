@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from config import (
     ENABLE_SYSLOG,
     SYSLOG_HOST, SYSLOG_PORT,
-    SYSLOG_TRANSPORT, SYSLOG_FACILITY,
+    SYSLOG_TRANSPORT, SYSLOG_FACILITY, SYSLOG_TCP_FRAMING,
     SYSLOG_MAX_MSG_BYTES,
 )
 from logging_setup import log
@@ -111,9 +111,10 @@ def _format_rfc5424(msg: str, app_name: str) -> bytes:
     Format:
       <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID STRUCTURED-DATA MSG
 
-    TCP framing uses octet-counting (RFC 6587 §3.4.1):
+    TCP framing defaults to octet-counting (RFC 6587 §3.4.1):
       MSG-LEN SP SYSLOG-MSG
-    This is the correct TCP framing for RFC 5424 — NOT newline-only.
+    Some receivers expect newline-delimited TCP syslog instead; set
+    SYSLOG_TCP_FRAMING=newline for that mode.
     UDP sends the raw message without framing.
     """
     timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -135,7 +136,9 @@ def _format_rfc5424(msg: str, app_name: str) -> bytes:
         )
 
     if SYSLOG_TRANSPORT == "tcp":
-        # Octet-count framing per RFC 6587
+        if SYSLOG_TCP_FRAMING == "newline":
+            return encoded + b"\n"
+        # Octet-count framing per RFC 6587.
         return f"{len(encoded)} ".encode() + encoded
     else:
         return encoded
