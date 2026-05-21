@@ -57,12 +57,22 @@ def build_headers() -> dict[str, str]:
     return headers
 
 
+_proxies_cache: dict | None = None
+_proxies_resolved: bool = False
+
+
 def _build_proxies() -> dict | None:
     """
     Return a requests-compatible proxies dict when USE_PROXY=true, or None.
+    Result is cached after the first call — config is read only once.
     Logs ERROR when USE_PROXY=true but no proxy URLs are configured.
     """
+    global _proxies_cache, _proxies_resolved
+    if _proxies_resolved:
+        return _proxies_cache
+
     if not _config.USE_PROXY:
+        _proxies_resolved = True
         return None
 
     if not _config.PROXY_HTTP and not _config.PROXY_HTTPS:
@@ -70,6 +80,7 @@ def _build_proxies() -> dict | None:
             "_build_proxies: USE_PROXY=true but neither PROXY_HTTP nor "
             "PROXY_HTTPS is set. No proxy will be applied."
         )
+        _proxies_resolved = True
         return None
 
     proxies: dict[str, str] = {}
@@ -82,7 +93,9 @@ def _build_proxies() -> dict | None:
         "Proxy enabled. http=%s https=%s",
         _config.PROXY_HTTP or "(none)", _config.PROXY_HTTPS or "(none)",
     )
-    return proxies
+    _proxies_cache = proxies
+    _proxies_resolved = True
+    return _proxies_cache
 
 
 def _fetch_page_once(

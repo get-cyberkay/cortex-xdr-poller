@@ -4,6 +4,13 @@ from datetime import datetime, timezone
 import logging
 
 import config as _config
+from cef_utils import (
+    cef_escape_header    as _cef_escape_header,
+    cef_escape_ext_value as _cef_escape_ext_value,
+    truncate_if_needed   as _truncate_if_needed,
+    SEVERITY_MAP         as _SEVERITY_MAP,
+)
+from leef import _has_value
 
 log = logging.getLogger("cortex_poller")
 
@@ -14,47 +21,10 @@ log = logging.getLogger("cortex_poller")
 
 QRADAR_CATEGORIES = {
     "alerts_default": "XDR Agent",
-    "mgmt_audits": "Management Audit Logs",
-    "agent_audits": "Agent Audit Logs",
-    "incidents": "3rd Party",
+    "mgmt_audits":    "Management Audit Logs",
+    "agent_audits":   "Agent Audit Logs",
+    "incidents":      "3rd Party",
 }
-
-
-_SEVERITY_MAP: dict[str, int] = {
-    "unknown": 1,
-    "low": 3,
-    "medium": 5,
-    "high": 7,
-    "critical": 10,
-}
-
-
-def _has_value(v) -> bool:
-    if v is None:
-        return False
-    if isinstance(v, (str, list, dict)) and len(v) == 0:
-        return False
-    return True
-
-
-def _cef_escape_header(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("|", "\\|")
-
-
-def _cef_escape_ext_value(value: str) -> str:
-    return (
-        value
-        .replace("\\", "\\\\")
-        .replace("=", "\\=")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    )
-
-
-def _truncate_if_needed(value: str) -> str:
-    if len(value) > _config.MAX_FIELD_VALUE_LEN:
-        return value[:_config.MAX_FIELD_VALUE_LEN] + "[TRUNC]"
-    return value
 
 
 def _epoch_ms_to_qradar_iso(value) -> str:
@@ -87,7 +57,7 @@ def _alert_category(record: dict) -> str:
         for k in ("source", "category", "name", "description")
     ).lower()
 
-    if "analytics bioc" in haystack or ("analytics" in haystack and "bioc" in haystack):
+    if "analytics" in haystack and "bioc" in haystack:
         return "XDR Analytics BIOC"
     if "bioc" in haystack:
         return "XDR BIOC"
@@ -130,18 +100,8 @@ def _signature_id(record: dict, stream: str) -> str:
     return stream
 
 
-def _header_name(record: dict, stream: str) -> str:
-    return _event_name(record, stream)
-
-
-def _header_version(record: dict, stream: str) -> str:
-    return _event_name(record, stream)
-
-
 def _hostname(record: dict, stream: str) -> str:
-    if stream == "alerts":
-        return _choose_first(record, "host_name")
-    if stream == "incidents":
+    if stream in ("alerts", "incidents"):
         return _choose_first(record, "host_name")
     if stream == "mgmt_audits":
         return _choose_first(record, "AUDIT_HOSTNAME")
@@ -271,9 +231,8 @@ def to_qradar(record: dict, stream: str) -> str:
     CEF extensions.
     """
     product = _stream_product(record, stream)
-    device_version = _header_version(record, stream)
+    event_name = _event_name(record, stream)
     signature_id = _signature_id(record, stream)
-    header_name = _header_name(record, stream)
     severity = _severity_to_cef(
         record.get("severity") or record.get("AUDIT_SEVERITY")
     )
@@ -281,9 +240,9 @@ def to_qradar(record: dict, stream: str) -> str:
     header = (
         "CEF:0|PaloAlto|"
         f"{_cef_escape_header(product)}|"
-        f"{_cef_escape_header(device_version)}|"
+        f"{_cef_escape_header(event_name)}|"
         f"{_cef_escape_header(signature_id)}|"
-        f"{_cef_escape_header(header_name)}|"
+        f"{_cef_escape_header(event_name)}|"
         f"{severity}|"
     )
 

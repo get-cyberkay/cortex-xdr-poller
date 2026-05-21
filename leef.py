@@ -2,8 +2,12 @@ from datetime import datetime, timezone, timedelta
 import logging
 
 import config as _config
+from cef_utils import truncate_if_needed
 
 log = logging.getLogger("cortex_poller")
+
+_SANITISE_TABLE = str.maketrans({"\t": " ", "\n": " ", "\r": " ", "|": " "})
+_tz = timezone(timedelta(hours=_config.DISPLAY_TZ_OFFSET))
 
 # ---------------------------------------------------------------------------
 # LEEF field maps
@@ -111,10 +115,7 @@ def sanitise(value) -> str:
     """Return a LEEF-safe string (no tabs, newlines, or pipes)."""
     if value is None:
         return ""
-    text = str(value)
-    for ch in ("\t", "\n", "\r", "|"):
-        text = text.replace(ch, " ")
-    return text
+    return str(value).translate(_SANITISE_TABLE)
 
 
 def epoch_to_iso(value) -> str:
@@ -133,10 +134,8 @@ def epoch_to_iso(value) -> str:
     Logs a warning when conversion fails so bad timestamps are visible.
     """
     try:
-        from config import DISPLAY_TZ_OFFSET
-        tz = timezone(timedelta(hours=DISPLAY_TZ_OFFSET))
         ts = int(value) / 1000
-        return datetime.fromtimestamp(ts, tz=tz).strftime("%b %d %Y %H:%M:%S")
+        return datetime.fromtimestamp(ts, tz=_tz).strftime("%b %d %Y %H:%M:%S")
     except (TypeError, ValueError, OSError) as exc:
         log.warning(
             "epoch_to_iso: could not convert value %r to timestamp: %s. "
@@ -184,10 +183,7 @@ def _build_leef(
         if key in already_mapped or not _has_value(value):
             continue
         if isinstance(value, (list, dict)):
-            raw_str = sanitise(str(value))
-            if len(raw_str) > _config.MAX_FIELD_VALUE_LEN:
-                raw_str = raw_str[:_config.MAX_FIELD_VALUE_LEN] + "[TRUNC]"
-            custom[key] = raw_str
+            custom[key] = truncate_if_needed(sanitise(str(value)))
         elif key in epoch_ms_fields:
             custom[key] = epoch_to_iso(value)
         else:

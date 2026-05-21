@@ -19,6 +19,12 @@ import logging
 from datetime import datetime, timezone
 
 import config as _config
+from cef_utils import (
+    cef_escape_header   as _cef_escape_header,
+    cef_escape_ext_value as _cef_escape_ext_value,
+    truncate_if_needed  as _truncate_if_needed,
+    SEVERITY_MAP        as _SEVERITY_MAP,
+)
 from leef import (
     alert_to_leef, incident_to_leef,
     mgmt_audit_to_leef, agent_audit_to_leef,
@@ -30,6 +36,7 @@ from leef import (
 from qradar import to_qradar
 
 log = logging.getLogger("cortex_poller")
+
 
 # ---------------------------------------------------------------------------
 # Stream → LEEF converter map (reuse leef.py entirely)
@@ -111,34 +118,9 @@ _CEF_EXT_MAP_BY_STREAM = {
     "agent_audits": _AGENT_AUDIT_CEF_EXT_MAP,
 }
 
-_SEVERITY_MAP: dict[str, int] = {
-    "unknown":  1,
-    "low":      3,
-    "medium":   5,
-    "high":     7,
-    "critical": 10,
-}
-
-
 # ---------------------------------------------------------------------------
 # CEF helpers
 # ---------------------------------------------------------------------------
-
-def _cef_escape_header(value: str) -> str:
-    """Escape pipe and backslash in CEF header fields."""
-    return value.replace("\\", "\\\\").replace("|", "\\|")
-
-
-def _cef_escape_ext_value(value: str) -> str:
-    """Escape =, backslash, and newlines in CEF extension values."""
-    return (
-        value
-        .replace("\\", "\\\\")
-        .replace("=",  "\\=")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    )
-
 
 def _cef_severity(record: dict, stream: str) -> int:
     """
@@ -219,10 +201,7 @@ def to_cef(record: dict, stream: str) -> str:
             if key in already_mapped or not _has_value(value):
                 continue
             if isinstance(value, (list, dict)):
-                raw_str = _cef_escape_ext_value(str(value))
-                if len(raw_str) > _config.MAX_FIELD_VALUE_LEN:
-                    raw_str = raw_str[:_config.MAX_FIELD_VALUE_LEN] + "[TRUNC]"
-                custom[key] = raw_str
+                custom[key] = _truncate_if_needed(_cef_escape_ext_value(str(value)))
             elif key in epoch_fields:
                 try:
                     custom[key] = str(int(value))

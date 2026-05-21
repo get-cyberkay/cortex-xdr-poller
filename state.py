@@ -14,13 +14,14 @@ def load_state() -> dict:
     Return persisted state from STATE_FILE, or an empty dict if the file
     does not exist or cannot be parsed.
     """
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError) as exc:
-            log.warning("Could not read state file (%s). Starting fresh.", exc)
-    return {}
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except (json.JSONDecodeError, OSError) as exc:
+        log.warning("Could not read state file (%s). Starting fresh.", exc)
+        return {}
 
 
 def save_state(state: dict) -> None:

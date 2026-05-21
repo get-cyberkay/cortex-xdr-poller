@@ -79,10 +79,9 @@ LOG_BACKUP_COUNT = 30
 # ---------------------------------------------------------------------------
 # Syslog
 # ---------------------------------------------------------------------------
-SYSLOG_HOST      = os.getenv("SYSLOG_HOST",      "")
-SYSLOG_PORT      = _parse_int("SYSLOG_PORT",      514)
-SYSLOG_TRANSPORT = os.getenv("SYSLOG_TRANSPORT", "tcp").strip().lower()
-SYSLOG_FACILITY  = _parse_int("SYSLOG_FACILITY",  16)
+SYSLOG_HOST        = os.getenv("SYSLOG_HOST",        "")
+SYSLOG_PORT        = _parse_int("SYSLOG_PORT",        514)
+SYSLOG_TRANSPORT   = os.getenv("SYSLOG_TRANSPORT",   "tcp").strip().lower()
 SYSLOG_TCP_FRAMING = os.getenv("SYSLOG_TCP_FRAMING", "newline").strip().lower()
 
 # ---------------------------------------------------------------------------
@@ -97,13 +96,12 @@ PAGE_SIZE = 100
 #   value after serialisation to string. Fields exceeding this are truncated and
 #   a [TRUNC] marker is appended. Default: 32 768 chars (32 KiB).
 #
-# SYSLOG_MAX_MSG_BYTES — hard ceiling on the RFC 5424 encoded payload sent to
-#   syslog. Any message exceeding this is truncated at the byte level and a
-#   [TRUNCATED] marker is appended. Default: 31 MiB — 1 MiB below QRadar's
-#   32 MiB limit to leave room for RFC 5424 framing overhead.
+# SYSLOG_MAX_MSG_BYTES — hard ceiling on the encoded payload sent to syslog.
+#   Any message exceeding this is truncated at the byte level and a [TRUNCATED]
+#   marker is appended. Default: 32 MiB — QRadar's per-event size limit.
 # ---------------------------------------------------------------------------
 MAX_FIELD_VALUE_LEN  = _parse_int("MAX_FIELD_VALUE_LEN",  32_768)
-SYSLOG_MAX_MSG_BYTES = _parse_int("SYSLOG_MAX_MSG_BYTES", 31 * 1024 * 1024)
+SYSLOG_MAX_MSG_BYTES = _parse_int("SYSLOG_MAX_MSG_BYTES", 32 * 1024 * 1024)
 
 # ---------------------------------------------------------------------------
 # Proxy

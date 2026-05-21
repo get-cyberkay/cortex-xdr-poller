@@ -5,6 +5,7 @@ import threading
 
 import config as _config
 from formatters import format_record
+from leef import epoch_to_iso
 from logging_setup import log
 from state import save_state
 from syslog_handler import send_syslog
@@ -219,9 +220,7 @@ def poll_stream(
 
 
 def _epoch_to_iso_safe(ts: int) -> str:
-    """Convert epoch timestamp (seconds or ms) to ISO string. Never raises."""
     try:
-        from leef import epoch_to_iso
         return epoch_to_iso(ts)
     except Exception:
         return str(ts)

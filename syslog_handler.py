@@ -1,50 +1,39 @@
 """
-syslog_handler.py — RFC 5424 syslog sender (TCP or UDP, best-effort).
+syslog_handler.py — raw log sender over TCP or UDP (best-effort).
 
 Public interface
 ----------------
 send_syslog(msg: str, app_name: str) -> None
-    Format msg as an RFC 5424 frame and dispatch it to the configured
-    syslog server. On any failure the error is logged to the ops logger
-    and the function returns silently — callers are never interrupted.
+    Encode msg as UTF-8, apply TCP framing if needed, and dispatch it to
+    the configured syslog server.  Sends the formatted log line as-is —
+    no RFC 5424 header is added.  LEEF, CEF, and JSON payloads are
+    self-describing and carry all required event metadata internally.
+
+    On any failure the error is logged to the ops logger and the function
+    returns silently — callers are never interrupted.
 
 Design notes
 ------------
 - TCP: a single module-level socket is reused across calls. On any send
   failure it is closed and a fresh connection is attempted immediately.
   If reconnection also fails the message is dropped and the error is logged.
-- UDP: stateless sendto on every call — no persistent socket needed.
-- RFC 5424 severity is always INFO (6). Priority = facility*8 + severity.
-- STRUCTURED-DATA is set to "-" (nil) — LEEF lines carry all field data.
-- HOSTNAME is the local machine hostname, truncated to 255 chars per spec.
-- PROCID is the current process ID.
+  Framing: newline-delimited (default) or RFC 6587 octet-count.
+- UDP: one datagram per call — each sendto() delivers exactly one log line.
+- Encoding: UTF-8 throughout; non-encodable characters replaced.
 """
 
 import atexit
-import os
 import queue
 import socket
 import threading
-from datetime import datetime, timezone
 
 from config import (
     ENABLE_SYSLOG,
     SYSLOG_HOST, SYSLOG_PORT,
-    SYSLOG_TRANSPORT, SYSLOG_FACILITY, SYSLOG_TCP_FRAMING,
+    SYSLOG_TRANSPORT, SYSLOG_TCP_FRAMING,
     SYSLOG_MAX_MSG_BYTES,
 )
 from logging_setup import log
-
-
-# ---------------------------------------------------------------------------
-# RFC 5424 constants
-# ---------------------------------------------------------------------------
-_SEVERITY_INFO = 6          # informational
-_NILVALUE      = "-"        # RFC 5424 nil value for optional fields
-_VERSION       = "1"        # RFC 5424 version is always 1
-_HOSTNAME      = socket.gethostname()[:255]
-_PROCID        = str(os.getpid())
-_MSGID         = _NILVALUE  # no per-message ID needed
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +53,8 @@ _tcp_socket: socket.socket | None = None
 # Shutdown: atexit calls _shutdown_syslog_worker() which enqueues a None
 # sentinel and joins the thread (up to 10 s) so in-flight messages are sent.
 # ---------------------------------------------------------------------------
-_syslog_queue: queue.Queue = queue.Queue(-1)   # unbounded
+_SYSLOG_QUEUE_MAXSIZE = 10_000
+_syslog_queue: queue.Queue = queue.Queue(_SYSLOG_QUEUE_MAXSIZE)
 
 
 def _syslog_worker() -> None:
@@ -75,7 +65,7 @@ def _syslog_worker() -> None:
                 return
             msg, app_name = item
             try:
-                frame = _format_rfc5424(msg, app_name)
+                frame = _prepare_payload(msg, app_name)
                 if SYSLOG_TRANSPORT == "udp":
                     _send_udp(frame)
                 else:
@@ -99,37 +89,24 @@ def _shutdown_syslog_worker() -> None:
     _syslog_thread.join(timeout=10)   # wait at most 10 s for clean drain
 
 
-def _priority() -> int:
-    """Compute RFC 5424 PRI value: facility * 8 + severity."""
-    return SYSLOG_FACILITY * 8 + _SEVERITY_INFO
-
-
-def _format_rfc5424(msg: str, app_name: str) -> bytes:
+def _prepare_payload(msg: str, app_name: str) -> bytes:
     """
-    Build a complete RFC 5424 syslog message as UTF-8 bytes.
+    Encode msg as UTF-8 and apply TCP framing if needed.
 
-    Format:
-      <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID STRUCTURED-DATA MSG
+    The log line is sent as-is — LEEF, CEF, and JSON payloads carry all
+    required event metadata without a syslog transport header.
 
-    TCP framing defaults to newline-delimited messages for SIEM compatibility:
-      SYSLOG-MSG LF
-    Set SYSLOG_TCP_FRAMING=octet for receivers expecting RFC 6587 octet counts:
-      MSG-LEN SP SYSLOG-MSG
-    UDP sends the raw message without framing.
+    TCP framing:
+      newline (default) → MSG LF         (line-delimited, QRadar/Splunk)
+      octet             → MSG-LEN SP MSG (RFC 6587, rsyslog/syslog-ng)
+    UDP: raw bytes, one datagram = one log line.
     """
-    timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    header = (
-        f"<{_priority()}>{_VERSION} {timestamp} {_HOSTNAME} "
-        f"{app_name[:48]} {_PROCID} {_MSGID} {_NILVALUE}"
-    )
-    full_msg = f"{header} {msg}"
-    encoded  = full_msg.encode("utf-8", errors="replace")
+    encoded = msg.encode("utf-8", errors="replace")
 
     if len(encoded) > SYSLOG_MAX_MSG_BYTES:
-        marker        = b" [TRUNCATED]"
-        header_bytes  = f"{header} ".encode("utf-8")
-        budget        = SYSLOG_MAX_MSG_BYTES - len(header_bytes) - len(marker)
-        encoded       = header_bytes + msg.encode("utf-8", errors="replace")[:budget] + marker
+        marker  = b" [TRUNCATED]"
+        budget  = SYSLOG_MAX_MSG_BYTES - len(marker)
+        encoded = encoded[:budget] + marker
         log.warning(
             "syslog: message truncated to %d bytes (app=%s).",
             len(encoded), app_name,
@@ -140,8 +117,7 @@ def _format_rfc5424(msg: str, app_name: str) -> bytes:
             return encoded.rstrip(b"\r\n") + b"\n"
         # Octet-count framing per RFC 6587.
         return f"{len(encoded)} ".encode() + encoded
-    else:
-        return encoded
+    return encoded
 
 
 def _send_tcp(frame: bytes) -> None:
@@ -221,4 +197,10 @@ def send_syslog(msg: str, app_name: str) -> None:
         )
         return
 
-    _syslog_queue.put((msg, app_name))
+    try:
+        _syslog_queue.put_nowait((msg, app_name))
+    except queue.Full:
+        log.warning(
+            "syslog queue full (maxsize=%d); message dropped.",
+            _SYSLOG_QUEUE_MAXSIZE,
+        )
