@@ -1,5 +1,12 @@
-"""Shared CEF escape, severity, and truncation utilities for formatters.py and qradar.py."""
+"""Shared CEF escape, severity, truncation, and stream-label utilities."""
 import config as _config
+
+STREAM_LABELS: dict[str, str] = {
+    "alerts":       "Alert",
+    "incidents":    "Incident",
+    "mgmt_audits":  "ManagementAudit",
+    "agent_audits": "AgentAudit",
+}
 
 SEVERITY_MAP: dict[str, int] = {
     "unknown":  1,

@@ -20,10 +20,11 @@ from datetime import datetime, timezone
 
 import config as _config
 from cef_utils import (
-    cef_escape_header   as _cef_escape_header,
+    cef_escape_header    as _cef_escape_header,
     cef_escape_ext_value as _cef_escape_ext_value,
-    truncate_if_needed  as _truncate_if_needed,
-    SEVERITY_MAP        as _SEVERITY_MAP,
+    truncate_if_needed   as _truncate_if_needed,
+    SEVERITY_MAP         as _SEVERITY_MAP,
+    STREAM_LABELS        as _STREAM_LABELS,
 )
 from leef import (
     alert_to_leef, incident_to_leef,
@@ -176,7 +177,7 @@ def to_cef(record: dict, stream: str) -> str:
         ext_map      = _CEF_EXT_MAP_BY_STREAM[stream]
         epoch_fields = _EPOCH_MS_FIELDS_BY_STREAM[stream]
 
-        mapped: dict[str, str]   = {}
+        mapped: dict[str, str]   = {"stream": _STREAM_LABELS.get(stream, stream)}
         already_mapped: set[str] = set()
         custom: dict[str, str]   = {}
 

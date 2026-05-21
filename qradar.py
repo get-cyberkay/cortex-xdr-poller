@@ -9,6 +9,7 @@ from cef_utils import (
     cef_escape_ext_value as _cef_escape_ext_value,
     truncate_if_needed   as _truncate_if_needed,
     SEVERITY_MAP         as _SEVERITY_MAP,
+    STREAM_LABELS        as _STREAM_LABELS,
 )
 from leef import _has_value
 
@@ -246,7 +247,7 @@ def to_qradar(record: dict, stream: str) -> str:
         f"{severity}|"
     )
 
-    ext: dict[str, str] = {}
+    ext: dict[str, str] = {"stream": _STREAM_LABELS.get(stream, stream)}
     for key, value in {**_base_extensions(record, stream), **_stream_specific_extensions(record, stream)}.items():
         if _has_value(value):
             ext[key] = _serialise_value(value)
