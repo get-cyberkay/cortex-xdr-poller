@@ -11,7 +11,7 @@ def poll_incidents_once(state: dict) -> dict:
     Timestamp field : modification_time  (epoch ms, from incidents response)
     Output file     : INCIDENTS_LOG_DIR/cortex_incidents.log
     Syslog APP-NAME : cortex-incidents
-    Format          : determined by OUTPUT_FORMAT in config (leef/cef/json)
+    Format          : determined by OUTPUT_FORMAT in config (leef/cef/json/qradar)
 
     Tracks modification_time so that updates to existing incidents (status
     changes, severity escalations, resolve comments) are captured on

@@ -71,7 +71,7 @@ All configuration is via `.env`. See `.env.example` for the full annotated refer
 | `LOOKBACK_HOURS` | Hours to look back on first run (takes priority) | — |
 | `LOOKBACK_DAYS` | Days to look back on first run | `1` |
 | `STATE_FILE` | Path to state file | `./cortex_state.json` |
-| `OUTPUT_FORMAT` | `leef`, `cef`, or `json` | `leef` |
+| `OUTPUT_FORMAT` | `leef`, `cef`, `json`, or `qradar` | `leef` |
 | `ENABLE_FILE_LOG` | Write formatted records to rotating log files | `true` |
 | `ENABLE_SYSLOG` | Forward records to syslog server | `false` |
 | `LOG_DIR` | Alert log directory | `./logs/alerts` |
@@ -82,6 +82,7 @@ All configuration is via `.env`. See `.env.example` for the full annotated refer
 | `SYSLOG_HOST` | Syslog server hostname or IP | — |
 | `SYSLOG_PORT` | Syslog server port | `514` |
 | `SYSLOG_TRANSPORT` | `tcp` or `udp` | `tcp` |
+| `SYSLOG_TCP_FRAMING` | TCP framing: `newline` for line-based SIEMs or `octet` for RFC 6587 receivers | `newline` |
 | `SYSLOG_FACILITY` | Syslog facility (0–23) | `16` (local0) |
 | `REQUEST_TIMEOUT_SECONDS` | HTTP timeout per page request | `60` |
 | `REQUEST_MAX_RETRIES` | Retries per page with exponential backoff | `3` |
@@ -100,6 +101,12 @@ All configuration is via `.env`. See `.env.example` for the full annotated refer
 | `leef` | LEEF 2.0 | IBM QRadar |
 | `cef` | CEF 0 | ArcSight, Splunk, most SIEMs |
 | `json` | Raw JSON with ISO timestamps | Any / custom pipelines |
+| `qradar` | DSM-compatible CEF | IBM QRadar with Cortex-XDR-QRadarv1.2.0 |
+
+`qradar` mode emits DSM-aware CEF records tailored to the Palo Alto
+`Cortex-XDR-QRadarv1.2.0` extension. Alerts and management audits are the
+primary normalized streams. Agent audits are emitted in an extension-friendly
+shape, while incidents are forwarded as best-effort `3rd Party` events.
 
 ---
 
@@ -137,6 +144,7 @@ ENABLE_SYSLOG=true
 SYSLOG_HOST=127.0.0.1
 SYSLOG_PORT=5514
 SYSLOG_TRANSPORT=tcp
+SYSLOG_TCP_FRAMING=newline
 ```
 
 Each stream's records arrive under its own `APP-NAME` field, making server-side filtering straightforward.

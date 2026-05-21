@@ -1,0 +1,19 @@
+[Unit]
+Description=Cortex XDR LEEF/CEF/JSON Poller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cyberkay
+WorkingDirectory=/home/cyberkay/cortex_xdr_poller
+EnvironmentFile=/home/cyberkay/cortex_xdr_poller/.env
+ExecStart=/home/cyberkay/cortex_xdr_poller/.venv/bin/python3 /home/cyberkay/cortex_xdr_poller/cortex.py
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cortex-xdr-poller
+
+[Install]
+WantedBy=multi-user.target

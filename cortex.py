@@ -1,5 +1,5 @@
 """
-cortex.py — entry point for the Cortex XDR LEEF/CEF/JSON poller.
+cortex.py — entry point for the Cortex XDR LEEF/CEF/JSON/QRadar poller.
 
 Data streams:
   alerts       — POST /public_api/v1/alerts/get_alerts

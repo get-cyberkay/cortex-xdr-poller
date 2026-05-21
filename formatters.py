@@ -1,5 +1,5 @@
 r"""
-formatters.py — CEF, LEEF, and JSON output formatters.
+formatters.py — CEF, LEEF, JSON, and QRadar output formatters.
 
 Public interface
 ----------------
@@ -8,9 +8,10 @@ format_record(record: dict, stream: str) -> str
     stream must be one of: "alerts", "incidents", "mgmt_audits", "agent_audits"
 
 Individual formatters are also importable directly for testing:
-    to_leef(record, stream) -> str
-    to_cef(record, stream)  -> str
-    to_json(record, stream) -> str
+    to_leef(record, stream)   -> str
+    to_cef(record, stream)    -> str
+    to_json(record, stream)   -> str
+    to_qradar(record, stream) -> str
 """
 
 import json
@@ -26,6 +27,7 @@ from leef import (
     MGMT_AUDIT_EPOCH_MS_FIELDS, AGENT_AUDIT_EPOCH_MS_FIELDS,
     _has_value,
 )
+from qradar import to_qradar
 
 log = logging.getLogger("cortex_poller")
 
@@ -335,6 +337,7 @@ _DISPATCH = {
     "leef": to_leef,
     "cef":  to_cef,
     "json": to_json,
+    "qradar": to_qradar,
 }
 
 _VALID_FORMATS = frozenset(_DISPATCH)

@@ -11,7 +11,7 @@ def poll_mgmt_audits_once(state: dict) -> dict:
     Timestamp field : AUDIT_INSERT_TIME
     Output file     : AUDIT_MGMT_LOG_DIR/cortex_mgmt_audit.log
     Syslog APP-NAME : cortex-mgmt-audit
-    Format          : determined by OUTPUT_FORMAT in config (leef/cef/json)
+    Format          : determined by OUTPUT_FORMAT in config (leef/cef/json/qradar)
     """
     return poll_stream(
         state           = state,

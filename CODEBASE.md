@@ -3,7 +3,7 @@
 ## Purpose
 
 A Python daemon that polls Cortex XDR APIs on a configurable interval, converts
-records to LEEF, CEF, or JSON format, and writes them to rotating log files and/or
+records to LEEF, CEF, JSON, or QRadar-DSM-compatible format, and writes them to rotating log files and/or
 forwards them to a syslog server (RFC 5424) for ingestion into SIEMs such as IBM
 QRadar, ArcSight, or Splunk.
 
@@ -53,7 +53,7 @@ cortex.py main()
                 └─ fetch_fn(since_ts)    # api_*.py → api_base.fetch_all()
                      └─ paginated HTTP POST with retry + backoff
                 └─ for each record:
-                     format_record()     # formatters.py → leef/cef/json
+                     format_record()     # formatters.py → leef/cef/json/qradar
                      output_logger.info() # rotating file
                      send_syslog()       # syslog_handler.py (no-op if disabled)
                 └─ save_state()         # updates state key with max ts seen
@@ -198,6 +198,12 @@ converted to ISO 8601 strings. Two metadata fields are injected:
 - `_stream`: stream name (e.g. `"alerts"`)
 - `_ingested`: UTC ISO timestamp of when the record was written
 
+### QRadar
+QRadar mode emits a DSM-compatible CEF variant tailored to the imported
+`Cortex-XDR-QRadarv1.2.0` extension. The CEF product field carries the DSM event
+category marker (for example `XDR Agent` or `Management Audit Logs`) and the
+extensions include `cat`, `shost`, and `suser` for parser extraction.
+
 ### Display Timezone
 `DISPLAY_TZ_OFFSET` (integer hours, default `0` = UTC) controls how epoch-ms
 timestamps are rendered in LEEF and JSON output. Examples: `1`=WAT, `2`=CAT, `3`=EAT.
@@ -300,7 +306,9 @@ is unset.
 
 **TCP (default):** A single module-level socket is reused. On send failure: close,
 reconnect, retry once. If reconnect also fails, the message is dropped and an ERROR
-is logged. Uses RFC 6587 octet-count framing: `<len> <msg>`.
+is logged. `SYSLOG_TCP_FRAMING=newline` sends one newline-delimited message per
+event for line-based SIEM inputs. Set `SYSLOG_TCP_FRAMING=octet` for receivers
+that expect RFC 6587 octet-count framing: `<len> <msg>`.
 
 **UDP:** Stateless `sendto` per message. No persistent socket.
 
@@ -321,7 +329,7 @@ syslog server cannot interrupt the poll loop.
 | `LOOKBACK_HOURS` | — | Hours to look back on first run (float accepted) |
 | `LOOKBACK_DAYS` | — | Days to look back on first run (float accepted, fallback) |
 | `STATE_FILE` | `./cortex_state.json` | Path to state persistence file |
-| `OUTPUT_FORMAT` | `leef` | `leef`, `cef`, or `json` |
+| `OUTPUT_FORMAT` | `leef` | `leef`, `cef`, `json`, or `qradar` |
 | `ENABLE_FILE_LOG` | `true` | Write formatted records to rotating log files |
 | `ENABLE_SYSLOG` | `false` | Forward formatted records to syslog server |
 | `LOG_DIR` | `./logs/leef` | Alerts output directory |
@@ -332,6 +340,7 @@ syslog server cannot interrupt the poll loop.
 | `SYSLOG_HOST` | — | Syslog server hostname or IP |
 | `SYSLOG_PORT` | `514` | Syslog server port |
 | `SYSLOG_TRANSPORT` | `tcp` | `tcp` or `udp` |
+| `SYSLOG_TCP_FRAMING` | `newline` | TCP framing: `newline` or `octet` (RFC 6587) |
 | `SYSLOG_FACILITY` | `16` | RFC 5424 facility integer (16 = local0) |
 | `REQUEST_TIMEOUT_SECONDS` | `60` | HTTP request timeout |
 | `REQUEST_MAX_RETRIES` | `3` | Max retry attempts per page request |

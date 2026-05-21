@@ -11,7 +11,7 @@ def poll_alerts_once(state: dict) -> dict:
     Timestamp field : detection_timestamp  (epoch ms; API filter uses creation_time but response field is detection_timestamp)
     Output file     : LOG_DIR/cortex_alerts.log
     Syslog APP-NAME : cortex-alerts
-    Format          : determined by OUTPUT_FORMAT in config (leef/cef/json)
+    Format          : determined by OUTPUT_FORMAT in config (leef/cef/json/qradar)
     """
     return poll_stream(
         state           = state,

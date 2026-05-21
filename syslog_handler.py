@@ -111,10 +111,10 @@ def _format_rfc5424(msg: str, app_name: str) -> bytes:
     Format:
       <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID STRUCTURED-DATA MSG
 
-    TCP framing defaults to octet-counting (RFC 6587 §3.4.1):
+    TCP framing defaults to newline-delimited messages for SIEM compatibility:
+      SYSLOG-MSG LF
+    Set SYSLOG_TCP_FRAMING=octet for receivers expecting RFC 6587 octet counts:
       MSG-LEN SP SYSLOG-MSG
-    Some receivers expect newline-delimited TCP syslog instead; set
-    SYSLOG_TCP_FRAMING=newline for that mode.
     UDP sends the raw message without framing.
     """
     timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -137,7 +137,7 @@ def _format_rfc5424(msg: str, app_name: str) -> bytes:
 
     if SYSLOG_TRANSPORT == "tcp":
         if SYSLOG_TCP_FRAMING == "newline":
-            return encoded + b"\n"
+            return encoded.rstrip(b"\r\n") + b"\n"
         # Octet-count framing per RFC 6587.
         return f"{len(encoded)} ".encode() + encoded
     else:
