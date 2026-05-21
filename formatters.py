@@ -53,19 +53,24 @@ _LEEF_CONVERTERS = {
 # CEF field maps
 # ---------------------------------------------------------------------------
 _ALERT_CEF_EXT_MAP: dict[str, str] = {
-    "alert_id":             "externalId",
-    "name":                 "cat",
-    "description":          "msg",
-    "severity":             "sev",
-    "action":               "act",
-    "detection_timestamp":  "rt",   # event time (= API creation_time filter)
-    "last_modified_ts":     "end",
-    "host_name":            "dvc",
-    "host_ip":              "src",
-    "endpoint_id":          "cs1",
-    "source":               "cs2",
-    "category":             "cs3",
-    "user_name":            "suser",
+    "alert_id":                              "externalId",
+    "name":                                  "cat",
+    "description":                           "msg",
+    "severity":                              "sev",
+    "action":                                "act",
+    "detection_timestamp":                   "rt",
+    "last_modified_ts":                      "end",
+    "host_name":                             "dvc",
+    "host_ip":                               "src",
+    "endpoint_id":                           "cs1",
+    "source":                                "cs2",
+    "category":                              "cs3",
+    "user_name":                             "suser",
+    "sha256":                                "fileHash",
+    "file_sha256":                           "fileHash",
+    "causality_actor_process_image_sha256":  "fileHash",
+    "file_path":                             "filePath",
+    "causality_actor_process_image_path":    "filePath",
 }
 
 _INCIDENT_CEF_EXT_MAP: dict[str, str] = {

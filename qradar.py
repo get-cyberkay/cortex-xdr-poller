@@ -10,22 +10,14 @@ from cef_utils import (
     truncate_if_needed   as _truncate_if_needed,
     SEVERITY_MAP         as _SEVERITY_MAP,
     STREAM_LABELS        as _STREAM_LABELS,
+    DSM_CATEGORIES       as _DSM_CATEGORIES,
 )
 from leef import _has_value
 
 log = logging.getLogger("cortex_poller")
 
 
-# ---------------------------------------------------------------------------
-# QRadar DSM-compatible categories
-# ---------------------------------------------------------------------------
-
-QRADAR_CATEGORIES = {
-    "alerts_default": "XDR Agent",
-    "mgmt_audits":    "Management Audit Logs",
-    "agent_audits":   "Agent Audit Logs",
-    "incidents":      "3rd Party",
-}
+# DSM_CATEGORIES is defined in cef_utils and imported above.
 
 
 def _epoch_ms_to_qradar_iso(value) -> str:
@@ -66,15 +58,13 @@ def _alert_category(record: dict) -> str:
         return "XDR IOC"
     if "ngfw" in haystack or "firewall" in haystack:
         return "PAN NGFW"
-    if "agent" in haystack:
-        return "XDR Agent"
-    return QRADAR_CATEGORIES["alerts_default"]
+    return _DSM_CATEGORIES["alerts"]
 
 
 def _stream_product(record: dict, stream: str) -> str:
     if stream == "alerts":
         return _alert_category(record)
-    return QRADAR_CATEGORIES.get(stream, "3rd Party")
+    return _DSM_CATEGORIES.get(stream, "3rd Party")
 
 
 def _event_name(record: dict, stream: str) -> str:
@@ -179,24 +169,30 @@ def _base_extensions(record: dict, stream: str) -> dict[str, str]:
 def _stream_specific_extensions(record: dict, stream: str) -> dict[str, str]:
     if stream == "alerts":
         return {
-            "act": _choose_first(record, "action"),
-            "reason": _choose_first(record, "description"),
-            "sev": _choose_first(record, "severity"),
-            "src": _choose_first(record, "host_ip"),
-            "source": _choose_first(record, "source"),
-            "category": _choose_first(record, "category"),
+            "act":         _choose_first(record, "action"),
+            "reason":      _choose_first(record, "description"),
+            "sev":         _choose_first(record, "severity"),
+            "src":         _choose_first(record, "host_ip"),
+            "source":      _choose_first(record, "source"),
+            "category":    _choose_first(record, "category"),
             "endpoint_id": _choose_first(record, "endpoint_id"),
-            "name": _choose_first(record, "name"),
+            "name":        _choose_first(record, "name"),
+            # Standard DSM CEF properties — populated when Cortex includes them.
+            "fileHash":    _choose_first(record, "sha256", "file_sha256",
+                                         "causality_actor_process_image_sha256"),
+            "filePath":    _choose_first(record, "file_path",
+                                         "causality_actor_process_image_path"),
         }
     if stream == "incidents":
         return {
-            "act": _choose_first(record, "status"),
-            "reason": _choose_first(record, "description"),
-            "sev": _choose_first(record, "severity"),
+            "act":                       _choose_first(record, "status"),
+            "reason":                    _choose_first(record, "description"),
+            "sev":                       _choose_first(record, "severity"),
             "assigned_user_pretty_name": _choose_first(record, "assigned_user_pretty_name"),
-            "resolve_comment": _choose_first(record, "resolve_comment"),
-            "manual_description": _choose_first(record, "manual_description"),
-            "xdr_url": _choose_first(record, "xdr_url"),
+            "resolve_comment":           _choose_first(record, "resolve_comment"),
+            "manual_description":        _choose_first(record, "manual_description"),
+            # DSM custom property regex: request=(\S+) → "XDR Request Reference URL"
+            "request":                   _choose_first(record, "xdr_url"),
         }
     if stream == "mgmt_audits":
         return {

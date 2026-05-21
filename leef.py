@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 import logging
 
 import config as _config
-from cef_utils import truncate_if_needed, STREAM_LABELS as _STREAM_LABELS
+from cef_utils import truncate_if_needed, STREAM_LABELS as _STREAM_LABELS, DSM_CATEGORIES as _DSM_CATEGORIES
 
 log = logging.getLogger("cortex_poller")
 
@@ -201,7 +201,7 @@ def alert_to_leef(alert: dict) -> str:
     """Convert a single Cortex XDR alert dict to a LEEF 2.0 log line."""
     try:
         event_id = sanitise(str(alert.get("alert_id", "CortexAlert")))
-        header   = f"LEEF:2.0|PaloAlto|Cortex XDR|1.0|{_STREAM_LABELS['alerts']}|x7c|"
+        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['alerts']}|1.0|{_STREAM_LABELS['alerts']}|x7c|"
         return header + _build_leef(
             record          = alert,
             event_id        = event_id,
@@ -220,7 +220,7 @@ def incident_to_leef(incident: dict) -> str:
     """Convert a single Cortex XDR incident dict to a LEEF 2.0 log line."""
     try:
         event_id = sanitise(str(incident.get("incident_id", "CortexIncident")))
-        header   = f"LEEF:2.0|PaloAlto|Cortex XDR|1.0|{_STREAM_LABELS['incidents']}|x7c|"
+        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['incidents']}|1.0|{_STREAM_LABELS['incidents']}|x7c|"
         return header + _build_leef(
             record          = incident,
             event_id        = event_id,
@@ -239,7 +239,7 @@ def mgmt_audit_to_leef(record: dict) -> str:
     """Convert a single management audit log dict to a LEEF 2.0 log line."""
     try:
         event_id = sanitise(str(record.get("AUDIT_ID", "CortexMgmtAudit")))
-        header   = f"LEEF:2.0|PaloAlto|Cortex XDR|1.0|{_STREAM_LABELS['mgmt_audits']}|x7c|"
+        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['mgmt_audits']}|1.0|{_STREAM_LABELS['mgmt_audits']}|x7c|"
         return header + _build_leef(
             record          = record,
             event_id        = event_id,
@@ -258,7 +258,7 @@ def agent_audit_to_leef(record: dict) -> str:
     """Convert a single agent audit report dict to a LEEF 2.0 log line."""
     try:
         event_id = sanitise(record.get("ENDPOINTID", "CortexAgentAudit"))
-        header   = f"LEEF:2.0|PaloAlto|Cortex XDR|1.0|{_STREAM_LABELS['agent_audits']}|x7c|"
+        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['agent_audits']}|1.0|{_STREAM_LABELS['agent_audits']}|x7c|"
         return header + _build_leef(
             record          = record,
             event_id        = event_id,

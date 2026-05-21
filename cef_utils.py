@@ -8,6 +8,15 @@ STREAM_LABELS: dict[str, str] = {
     "agent_audits": "AgentAudit",
 }
 
+# Exact strings the QRadar DSM (device type 4001) matches in the CEF Product field
+# and LEEF Product field to assign EventCategory. Must not be changed.
+DSM_CATEGORIES: dict[str, str] = {
+    "alerts":       "XDR Agent",
+    "incidents":    "3rd Party",
+    "mgmt_audits":  "Management Audit Logs",
+    "agent_audits": "Agent Audit Logs",
+}
+
 SEVERITY_MAP: dict[str, int] = {
     "unknown":  1,
     "low":      3,
