@@ -180,9 +180,11 @@ absent). Bad values log ERROR and fall through to the next option rather than cr
 
 Controlled by `OUTPUT_FORMAT` env var. Applied uniformly across all streams.
 
-### LEEF 2.0
-Header: `LEEF:2.0|PaloAlto|Cortex XDR|1.0|<eventId>|x7c|`
-Fields are pipe-delimited `key=value` pairs. Tab, newline, pipe, and carriage return
+### LEEF 1.0
+Header: `LEEF:1.0|PaloAlto|Cortex XDR|1.0|<eventId>|`
+Fields are pipe-delimited `key=value` pairs. (LEEF 1.0 has no delimiter-specifier
+field; the body keeps `|` separators, so the QRadar log source must be configured
+to split attributes on `|` rather than the LEEF 1.0 default tab.) Tab, newline, pipe, and carriage return
 in values are replaced with spaces (`sanitise()`). Timestamp fields (`devTime`,
 `devTimeEnd`) are converted from epoch-ms to human-readable via `epoch_to_iso()`.
 

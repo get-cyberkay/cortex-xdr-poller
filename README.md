@@ -1,6 +1,6 @@
 # Cortex XDR Poller
 
-Polls the Cortex XDR REST API for **alerts**, **incidents**, **management audit logs**, and **agent audit reports**. Converts every record to LEEF 2.0, CEF 0, or JSON and delivers it to rotating log files and/or a syslog server — all via a fully asynchronous, non-blocking pipeline.
+Polls the Cortex XDR REST API for **alerts**, **incidents**, **management audit logs**, and **agent audit reports**. Converts every record to LEEF 1.0, CEF 0, or JSON and delivers it to rotating log files and/or a syslog server — all via a fully asynchronous, non-blocking pipeline.
 
 ---
 
@@ -8,7 +8,7 @@ Polls the Cortex XDR REST API for **alerts**, **incidents**, **management audit 
 
 - **4 independent data streams** — alerts, incidents, management audits, agent audits, each in its own thread
 - **Fully async I/O** — API fetch, file writes, and syslog sends each run in their own worker; no operation blocks another
-- **3 output formats** — LEEF 2.0 (QRadar), CEF 0 (ArcSight / Splunk), JSON
+- **3 output formats** — LEEF 1.0 (QRadar), CEF 0 (ArcSight / Splunk), JSON
 - **RFC 5424 syslog** over TCP (octet-count framing, RFC 6587) or UDP
 - **Rotating log files** — daily midnight UTC + 100 MB size cap, 30 files retained
 - **Resumable state** — per-stream cursor persisted to `cortex_state.json`; state advances per page so a mid-fetch failure wastes nothing
@@ -98,7 +98,7 @@ All configuration is via `.env`. See `.env.example` for the full annotated refer
 
 | Format | Spec | Target SIEM |
 |---|---|---|
-| `leef` | LEEF 2.0 | IBM QRadar |
+| `leef` | LEEF 1.0 | IBM QRadar |
 | `cef` | CEF 0 | ArcSight, Splunk, most SIEMs |
 | `json` | Raw JSON with ISO timestamps | Any / custom pipelines |
 | `qradar` | DSM-compatible CEF | IBM QRadar with Cortex-XDR-QRadarv1.2.0 |
@@ -157,7 +157,7 @@ Each stream's records arrive under its own `APP-NAME` field, making server-side 
 cortex.py               Entry point — starts 4 stream threads
 config.py               All env-var loading and defaults
 formatters.py           CEF / LEEF / JSON dispatch
-leef.py                 LEEF 2.0 field maps and converters
+leef.py                 LEEF 1.0 field maps and converters
 logging_setup.py        Async QueueHandler file loggers + rotation
 syslog_handler.py       Async RFC 5424 syslog sender (worker queue + TCP/UDP)
 state.py                Atomic state file persistence

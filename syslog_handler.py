@@ -5,9 +5,11 @@ Public interface
 ----------------
 send_syslog(msg: str, app_name: str) -> None
     Encode msg as UTF-8, apply TCP framing if needed, and dispatch it to
-    the configured syslog server.  Sends the formatted log line as-is —
-    no RFC 5424 header is added.  LEEF, CEF, and JSON payloads are
-    self-describing and carry all required event metadata internally.
+    the configured syslog server.  By default the formatted log line is sent
+    as-is — LEEF, CEF, and JSON payloads are self-describing and carry all
+    required event metadata internally.  When SYSLOG_HOSTNAME is set, a minimal
+    RFC 3164 header (`<PRI>TIMESTAMP HOSTNAME `) is prepended so the SIEM can
+    use that hostname as the Log Source Identifier.
 
     On any failure the error is logged to the ops logger and the function
     returns silently — callers are never interrupted.
@@ -26,14 +28,39 @@ import atexit
 import queue
 import socket
 import threading
+from datetime import datetime, timedelta, timezone
 
 from config import (
     ENABLE_SYSLOG,
     SYSLOG_HOST, SYSLOG_PORT,
     SYSLOG_TRANSPORT, SYSLOG_TCP_FRAMING,
     SYSLOG_MAX_MSG_BYTES,
+    SYSLOG_HOSTNAME, SYSLOG_FACILITY,
+    DISPLAY_TZ_OFFSET,
 )
 from logging_setup import log
+
+
+# RFC 3164 PRI = facility * 8 + severity. Severity 6 = informational.
+_SYSLOG_PRI = SYSLOG_FACILITY * 8 + 6
+
+
+def _rfc3164_header() -> str:
+    """Build an RFC 3164 syslog header: ``<PRI>Mmm dd hh:mm:ss HOSTNAME ``.
+
+    Returns an empty string when SYSLOG_HOSTNAME is not configured, so the raw
+    payload is sent unchanged (preserving the default headerless behaviour).
+
+    The HOSTNAME field is what QRadar uses as the Log Source Identifier. The
+    timestamp uses DISPLAY_TZ_OFFSET for consistency with the payload's event
+    times; SIEMs take event time from the LEEF/CEF body, not this header.
+    """
+    if not SYSLOG_HOSTNAME:
+        return ""
+    now = datetime.now(timezone.utc) + timedelta(hours=DISPLAY_TZ_OFFSET)
+    # RFC 3164 requires the day to be space-padded to width 2 (e.g. "Jun  8").
+    ts = f"{now:%b} {now.day:2d} {now:%H:%M:%S}"
+    return f"<{_SYSLOG_PRI}>{ts} {SYSLOG_HOSTNAME} "
 
 
 # ---------------------------------------------------------------------------
@@ -91,16 +118,19 @@ def _shutdown_syslog_worker() -> None:
 
 def _prepare_payload(msg: str, app_name: str) -> bytes:
     """
-    Encode msg as UTF-8 and apply TCP framing if needed.
+    Optionally prepend an RFC 3164 header, encode as UTF-8, and apply framing.
 
-    The log line is sent as-is — LEEF, CEF, and JSON payloads carry all
-    required event metadata without a syslog transport header.
+    When SYSLOG_HOSTNAME is set, a ``<PRI>TIMESTAMP HOSTNAME `` header is
+    prepended so the SIEM can derive a stable Log Source Identifier from the
+    hostname. When it is empty (default) the LEEF/CEF/JSON payload is sent
+    as-is — it carries all required event metadata internally.
 
     TCP framing:
       newline (default) → MSG LF         (line-delimited, QRadar/Splunk)
       octet             → MSG-LEN SP MSG (RFC 6587, rsyslog/syslog-ng)
     UDP: raw bytes, one datagram = one log line.
     """
+    msg = _rfc3164_header() + msg
     encoded = msg.encode("utf-8", errors="replace")
 
     if len(encoded) > SYSLOG_MAX_MSG_BYTES:

@@ -198,10 +198,10 @@ def _build_leef(
 # ---------------------------------------------------------------------------
 
 def alert_to_leef(alert: dict) -> str:
-    """Convert a single Cortex XDR alert dict to a LEEF 2.0 log line."""
+    """Convert a single Cortex XDR alert dict to a LEEF 1.0 log line."""
     try:
         event_id = sanitise(str(alert.get("alert_id", "CortexAlert")))
-        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['alerts']}|1.0|{_STREAM_LABELS['alerts']}|x7c|"
+        header   = f"LEEF:1.0|PaloAlto|{_DSM_CATEGORIES['alerts']}|1.0|{_STREAM_LABELS['alerts']}|"
         return header + _build_leef(
             record          = alert,
             event_id        = event_id,
@@ -217,10 +217,10 @@ def alert_to_leef(alert: dict) -> str:
 
 
 def incident_to_leef(incident: dict) -> str:
-    """Convert a single Cortex XDR incident dict to a LEEF 2.0 log line."""
+    """Convert a single Cortex XDR incident dict to a LEEF 1.0 log line."""
     try:
         event_id = sanitise(str(incident.get("incident_id", "CortexIncident")))
-        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['incidents']}|1.0|{_STREAM_LABELS['incidents']}|x7c|"
+        header   = f"LEEF:1.0|PaloAlto|{_DSM_CATEGORIES['incidents']}|1.0|{_STREAM_LABELS['incidents']}|"
         return header + _build_leef(
             record          = incident,
             event_id        = event_id,
@@ -236,10 +236,10 @@ def incident_to_leef(incident: dict) -> str:
 
 
 def mgmt_audit_to_leef(record: dict) -> str:
-    """Convert a single management audit log dict to a LEEF 2.0 log line."""
+    """Convert a single management audit log dict to a LEEF 1.0 log line."""
     try:
         event_id = sanitise(str(record.get("AUDIT_ID", "CortexMgmtAudit")))
-        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['mgmt_audits']}|1.0|{_STREAM_LABELS['mgmt_audits']}|x7c|"
+        header   = f"LEEF:1.0|PaloAlto|{_DSM_CATEGORIES['mgmt_audits']}|1.0|{_STREAM_LABELS['mgmt_audits']}|"
         return header + _build_leef(
             record          = record,
             event_id        = event_id,
@@ -255,10 +255,10 @@ def mgmt_audit_to_leef(record: dict) -> str:
 
 
 def agent_audit_to_leef(record: dict) -> str:
-    """Convert a single agent audit report dict to a LEEF 2.0 log line."""
+    """Convert a single agent audit report dict to a LEEF 1.0 log line."""
     try:
         event_id = sanitise(record.get("ENDPOINTID", "CortexAgentAudit"))
-        header   = f"LEEF:2.0|PaloAlto|{_DSM_CATEGORIES['agent_audits']}|1.0|{_STREAM_LABELS['agent_audits']}|x7c|"
+        header   = f"LEEF:1.0|PaloAlto|{_DSM_CATEGORIES['agent_audits']}|1.0|{_STREAM_LABELS['agent_audits']}|"
         return header + _build_leef(
             record          = record,
             event_id        = event_id,

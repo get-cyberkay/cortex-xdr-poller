@@ -40,7 +40,7 @@ The poller is a multi-threaded daemon. `cortex.py` starts **4 independent daemon
 | Poll engine | `poller_base.py` | Shared: lookback, fetch, format, log, syslog, state |
 | Stream pollers | `poller_alerts.py`, `poller_incidents.py`, `poller_mgmt_audit.py`, `poller_agent_audit.py` | Stream-specific wrappers around `poller_base` |
 | API clients | `api_base.py` + `api_*.py` | Paginated HTTP fetch with retry/backoff |
-| Formatters | `formatters.py`, `leef.py` | LEEF 2.0, CEF 0, JSON, QRadar-DSM dispatch |
+| Formatters | `formatters.py`, `leef.py` | LEEF 1.0, CEF 0, JSON, QRadar-DSM dispatch |
 | Output | `logging_setup.py` | Async rotating file loggers (100 MB / daily) |
 | Syslog | `syslog_handler.py` | RFC 5424 TCP (octet-count or newline) / UDP sender |
 | State | `state.py` | Atomic read/write of `cortex_state.json` |
@@ -56,7 +56,7 @@ The poller is a multi-threaded daemon. `cortex.py` starts **4 independent daemon
 
 ## Configuration
 
-All configuration is via `.env` (copy `.env.example`). Required: `api_key`, `api_key_id`, `url`. Key optional vars: `OUTPUT_FORMAT` (`leef`/`cef`/`json`/`qradar`), `ENABLE_SYSLOG`, `SYSLOG_TCP_FRAMING` (`octet` or `newline`), `LOOKBACK_HOURS`/`LOOKBACK_DAYS`.
+All configuration is via `.env` (copy `.env.example`). Required: `api_key`, `api_key_id`, `url`. Key optional vars: `OUTPUT_FORMAT` (`leef`/`cef`/`json`/`qradar`), `ENABLE_SYSLOG`, `SYSLOG_TCP_FRAMING` (`octet` or `newline`), `SYSLOG_HOSTNAME` (when set, prepends an RFC 3164 header so QRadar uses it as the Log Source Identifier instead of the packet source IP), `LOOKBACK_HOURS`/`LOOKBACK_DAYS`.
 
 ## Deployment
 

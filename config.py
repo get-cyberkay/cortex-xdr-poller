@@ -84,6 +84,20 @@ SYSLOG_PORT        = _parse_int("SYSLOG_PORT",        514)
 SYSLOG_TRANSPORT   = os.getenv("SYSLOG_TRANSPORT",   "tcp").strip().lower()
 SYSLOG_TCP_FRAMING = os.getenv("SYSLOG_TCP_FRAMING", "newline").strip().lower()
 
+# SYSLOG_HOSTNAME — optional. When non-empty, an RFC 3164 syslog header
+#   (`<PRI>TIMESTAMP HOSTNAME `) is prepended to every payload, with this value
+#   as the HOSTNAME field. QRadar (and most SIEMs) extract the Log Source
+#   Identifier from that hostname token, so this lets you set an arbitrary,
+#   stable identifier that is decoupled from the sending host's real IP/name.
+#   Empty (default) → no header is added; the raw LEEF/CEF/JSON payload is sent
+#   as-is and the log source is identified by packet source IP.
+#
+# SYSLOG_FACILITY — syslog facility (0–23) used to compute the RFC 3164 PRI.
+#   Only relevant when SYSLOG_HOSTNAME is set. 16=local0 … 23=local7.
+#   PRI = SYSLOG_FACILITY * 8 + 6 (severity 6 = informational).
+SYSLOG_HOSTNAME    = os.getenv("SYSLOG_HOSTNAME", "").strip()
+SYSLOG_FACILITY    = _parse_int("SYSLOG_FACILITY", 16)
+
 # ---------------------------------------------------------------------------
 # API pagination
 # ---------------------------------------------------------------------------
